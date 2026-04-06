@@ -1,0 +1,39 @@
+name: QuantumLight Pipeline
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        env:
+          GITHUB_TOKEN: ${{ secrets.PIPELINE_GITHUB_TOKEN }}
+          GITHUB_REPO_OWNER: ${{ secrets.REPO_OWNER }}
+          GITHUB_REPO_NAME: ql-pipeline
+        run: python pipeline.py
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "Pipeline run $(date -u '+%Y-%m-%d')"
+          git push
